@@ -1,48 +1,56 @@
-%% Repeat for elliptical data 
 clear
 clc
-% R = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]; 
-lambda = 1;
-N = 10; Nu = 1; eta = 1e-4; plotkey = 1;
-% TPR = zeros(7, N);FPR = zeros(7, N);
-Ndim = 10;
-Nsim = 100;
-
+% Generate Elliptical Data
+% Generate precision matrix 
+Ndim = 10; Nsim = 100; 
 Theta = eye(Ndim);
 Theta = Theta + diag(0.2*ones(Ndim-1,1),1) + diag(0.2*ones(Ndim-1,1),-1);
-Mu = rand(Ndim,1);
+
+% Generate with the T-distribution with parameter = Nu and the
+% randomized vector Mu 
+Mu = rand(Ndim,1); Nu = 10;
 % Theta = Theta' * Theta; % Make theta semi-positive definite
 DataEC = GenerateEC(Nsim,Ndim,Nu, Mu, Theta);
+
+% Estimate variance-covariance matrix by correlation matrix
 Sigma = corr(DataEC, DataEC);
-% Thetahat = ADMM(Tau,lambda);
 
-n = size(Sigma,1);
-err = 1e-4; alpha = eigs(Sigma, 1);
+% Initial Setting for ADMM
+lambda = 0.05; 
+err = 1e-4;
+Theta_hat = ADMM(Sigma, lambda, err);
 
-S =  (alpha^2 * eye(n) - Sigma^2);R = Sigma/alpha; L = ones(n,1); 
-A = chol(S);
-Theta_hat = zeros(n);
-E = eye(n);
 
-soft_thresh = @(b, rambda) sign(b).*max(abs(b) - 1/rambda,0);
+
+% mu = 1; n = size(Sigma,1); err = 1; I = eye(n);L = diag(I);
+% soft_threshS = @(b,lambda) sign(b).*max(abs(b) - lambda/2,0);
+% 
+% % Precomputed 
+% alpha = eigs(Sigma, 1)+ 0.01;
+% S =  (alpha^2 * eye(n) - Sigma'*Sigma)/alpha; R = Sigma/alpha;  
+% Theta_hat = zeros(n);
+% 
+% 
 % for i = 1:n
-i = 1;
-    ei = E(:,i);
-    Ri = R(:,i);
-    xk = L; uk = L; yk = 0; 
-    mu = 0.01; 
-    cond = true;
-    while cond 
-        xk
-        yk1 = min(max(Sigma*xk -ei + uk/mu, -lambda*L),lambda*L);
-        tempb = R * (ei + yk1 - uk/mu) + A * xk/alpha;
-        xk1 = soft_thresh(tempb, mu*alpha);
-        uk1 = uk + mu * (Sigma*xk1 - ei - yk1);
-%         cond = norm( xk1 - xk) > err && norm( yk1 - yk) > err && norm(uk1 - uk) > err;
-        cond = norm( xk1 - xk) > err;
-        xk = xk1; yk = yk1; uk = uk1;
-    end
-    Theta_hat(:,i) = xk;
-
+%     ei = I(:,i);
+%     %     Ri = R(:,i);
+%     xk = L; uk = L; yk = L; 
+%     cond = true;
+%     while cond 
+% 
+%         yk = min(max(Sigma*xk -ei + uk/mu, (-lambda*L)),lambda*L);
+%         v = R * (ei + yk - uk/mu);
+%         b = v + S * xk;
+%         xk1 = soft_threshS(b, 2/mu*alpha);
+%         uk1 = uk + mu * (Sigma*xk1 - ei - yk);
+%         cond = norm( xk1 - xk) > err && norm(uk1 - uk) > err;
+% %         cond = norm( xk1 - xk) > err;
+%         xk = xk1; uk = uk1;
+%     end
+% 
+%     xk
+%     Theta_hat(:,i) = xk;
+% 
 % end
-
+% Theta_hat
+% 

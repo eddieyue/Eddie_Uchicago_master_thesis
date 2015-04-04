@@ -1,0 +1,110 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage{geometry}
+\geometry{left=2cm,right=2cm,top=3cm,bottom=2cm}
+\usepackage{indentfirst}
+\usepackage{dsfont}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{amssymb} 
+\usepackage[usenames,dvipsnames]{color}
+  \author{Eddie Yue} 
+  \title{Eddie Yue Uchicago Master Thesis \\
+         \vspace{3 mm} \large ADMM (alternating direction method of multipliers) Outline}
+\pagestyle{fancy}
+\fancyhf{}
+\linespread{1.5}
+
+
+\begin{document} 
+	\paragraph{ADMM Part}: \\
+	To estimate the $\hat{\theta}$, the precision matrix, with $\Sigma$, the correlatoin matrix by CLIME method, here is the optimization problem:
+	\[
+	\hat{\theta} = \arg\!\min_\theta \|\theta\|_1
+	\quad s.t \quad \|\Sigma\Theta - \mathds{1}_p\|_\infty \leq \lambda
+	\tag{1}\label{myeq1}
+	\] 
+	
+	To make the optimization problem easier, I could split the problem \eqref{myeq1} to each colunms of $\theta$ by the property of 1-norm and Inf-norm.
+	\[ \hat{x_i} = \arg\!\min_x \|x\|_1
+	\quad s.t \quad \|\Sigma{x} - e_i\|_\infty \leq \lambda
+	\tag{2}\label{myeq2} \]
+	where $x_i$ is the $i^{th}$ colunm of $\theta$ and the $e_i$ is the $i^{th}$ column of $\mathds{1}_p $.\\
+	At first place, we attempt to solve this problem \eqref{myeq2} in MATLAB using a convex optimization package like CVX, which employ accurate but slow methos. Fortunately, however, there is a much more efficient way to do this, here is the Alternating Direction Method of Multipliers (ADMM):
+	\[
+	\hat{\beta} = \arg\!\min_\beta \|\beta\|_1
+	\quad s.t \quad X^TX\beta - X^Ty - z = 0, \quad \|D^{-1}z\|_\infty \leq \delta
+	\tag{3}\label{myeq3}
+	\] 
+	
+	To turn ADMM into ou problem, set D = $\mathds{1}_p$, and wherever they have $X^TX$ we write $\Sigma$, and wherever they have $X^Ty$ we write $e_i$. In order to describe the ADMM iterations, we introduce the augmented Lagrangian function for \eqref{myeq3}:
+	\[
+	L_\mu(z,\beta,\lambda) = \|\beta\|_1 + \lambda^T(X^TX\beta-X^Ty- z) + \frac{\mu}{2}\|X^TX\beta-X^Ty- z\|_{2}^2
+	\tag{4}\label{myeq4}
+	\]
+	for some $\mu > 0$. \\
+	
+	Each iteration of the ADMM involves alternate minimization of $L_\mu$ with respect to z and $\beta$, followed by an update of $\lambda$. Here is the outline for ADMM:\\
+	
+	Start with $\beta^0 , \lambda^0 \in \mathbb{R}^p$ and $ \mu > 0$.Then iterate with z and $\beta$ followed by an update of $\lambda$ until converge( Actually, I do have the question of the convergence condition). For k = 0,1,...
+	\[\left\{
+	\begin{array}{lr}
+	z^k+1 = \arg\!\min_z L_\mu(z,\beta^k,\lambda^k) \quad s.t \quad \|D^{-1}z\|_\infty \leq	\delta\\
+	\beta^{k+1} \in \arg\!\min_\beta L_\mu(z^{k+1},\beta,\lambda^k)\\
+	\lambda^{k+1} = \lambda^k +\mu(X^TX\beta^{k+1}-X^Ty-z^{k+1})
+	\end{array}
+	\right.
+	\tag{5}\label{myeq5}
+	\]
+	
+	For the augmented Lagrangian function \eqref{myeq4}, it is easy to observe that the first subproblem in \eqref{myeq5} has a close-form solution.
+	\begin{align*}
+	z^{k+1} &= \arg\!\min_z \|z - (X^TX\beta^{k}-X^Ty-\frac{\lambda^k}{\mu})\|_{2}^2 \quad s.t \quad \|D^{-1}z\|_\infty \leq \delta\\
+	z^{k+1}_i &= min\{max\{(X^TX\beta^{k}-X^Ty-\frac{\lambda^k}{\mu})_i,-\delta{d}_i\}, \delta{d}_i)\}
+	\tag{6}\label{myeq6}
+	\end{align*}
+	where $d_i$ is the $i^{th}$ diagonal entry of D.
+	
+	The second subproblem in \eqref{myeq5} is harder to solve, it can be rewritten as, 
+	
+	\[
+	\beta^{k+1} = \arg\!\min_\beta \frac{\mu}{2}\|X^TX\beta^{k}-X^Ty-z^{k+1}+\frac{\lambda^k}{\mu}\|_{2}^2 + \|\beta\|_1
+	\tag{7}\label{myeq7}
+	\]
+	
+	However, the problem \eqref{myeq7} is obvious Lasso question, which cannot be solved in a single iteration. For our problem, their z, $\beta$, $\lambda$,  $X^TX$ and $X^Ty$ are equivalent to our y, x, u $\Sigma$ and $e_i$.
+	\[
+	x^{k+1} = \arg\!\min_x \frac{\mu}{2}\|\Sigma{x}^{k}-e_i-y^{k+1}+\frac{u^k}{\mu}\|_{2}^2 + \|\beta\|_1
+	\tag{8}\label{myeq8}
+	\]
+	where $e_i$ is the $i^{th}$ column of $\mathds{1}_p $.\\
+	
+	Then we introduce a precondition on \eqref{myeq8} with $\alpha$ =  largest absolute value eigenvalue of $\Sigma$ + 0.01 and $A \in \mathbb{R}^p$ s.t $A^TA = \alpha^2\mathds{1}_p - \Sigma^T\Sigma$.
+	\begin{align*}
+	x^{k+1} &= \arg\!\min_x \frac{\mu}{2}\|\Sigma{x}-e_i-y^{k+1}+\frac{u^k}{\mu}\|_{2}^2 + \|x\|_1 +\frac{\mu}{2}\|A(x-x^k)\|_{2}^2\\
+	x^{k+1} &= \arg\!\min_x \frac{\mu}{2}(x^T\Sigma^T\Sigma{x} + x^TA^TA{x}-2x^T\Sigma{v} - 2x^TA^TA{x^k})+ \|x\|_1 + C\\
+	&\text{where } v = e_i+y^{k+1}-\frac{u^k}{\mu} \text{ and constant } C\\
+	x^{k+1} &= \arg\!\min_x \frac{\mu\alpha^2}{2}[x^Tx-\frac{2x^T}{\alpha^2}(\Sigma{v}+A^TA{x^k})]+ \|x\|_1+C\\
+	x^{k+1} &= \arg\!\min_x \frac{\mu\alpha^2}{2}\|x-\frac{\Sigma{v}+A^TA{x^k}}{\alpha^2}\|_{2}^2+ \|x\|_1
+	\tag{9}\label{myeq9}
+	\end{align*}
+	
+	For the problem \eqref{myeq9}, it is still a Lasso problem. But it could be solved by a simple soft thresholding method. 
+	\[
+	x = \arg\!\min_x \|x-b\|_{2}^2 +\lambda\|x\|_1
+	\]
+	
+	with solution:
+	\[
+	S_\lambda(b)=
+	\begin{cases}
+	b - \frac{\lambda}{2} & \text{if } b > \frac{\lambda}{2}\\
+	b + \frac{\lambda}{2} & \text{if } b < -\frac{\lambda}{2}\\
+	0 & otherwise
+	\end{cases}
+	\tag{10}\label{myeq10}
+	\]
+	
+	In our case, we substitude those value below into \eqref{myeq10}:
+	$$b = \frac{\Sigma{v}+A^TA{x^k}}{\alpha^2} \text{ and } \lambda = \frac{2}{\mu\alpha^2}$$ 
+\end{document}

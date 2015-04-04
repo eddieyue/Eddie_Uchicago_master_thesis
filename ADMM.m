@@ -1,6 +1,6 @@
-function Theta_hat = ADMM(Sigma,lambda, mu )
+function Theta_hat = ADMM(Sigma,lambda, err, mu )
 %
-% ADMM method to estimate the Theta_hat
+% ADMM method to estimate the precision matrix
 % 
 % Input: 
 %       Sigma: estimated correlation matrix
@@ -9,36 +9,40 @@ function Theta_hat = ADMM(Sigma,lambda, mu )
 % Output:
 %       Theta_hat: the estimated Theta by ADMM method
 
-if nargin < 3; mu = 0.1; end
+if nargin < 4; mu = 1; end
+if nargin < 3; err = 1;end
 
-n = size(Sigma,1);
-err = 1e-4; alpha = eigs(Sigma, 1);
+n = size(Sigma,1);  I = eye(n);L = diag(I); eta = 1e-4;
+soft_threshS = @(b,lambda) sign(b).*max(abs(b) - lambda/2,0);
 
-% S =  (alpha^2 * eye(n) - Sigma^2)/alpha;
-S =  (alpha^2 * eye(n) - Sigma^2);
-R = Sigma/alpha; L = ones(n,1); 
-A = chol(S);
-% A = chol(S,'lower');
-Theta_hat = zeros(n,n);
-B = eye(n);
+% Precomputed 
+alpha = eigs(Sigma, 1)+ 0.01;
+S =  (alpha^2 * eye(n) - Sigma'*Sigma)/alpha^2; R = Sigma/alpha^2;  
+Theta_hat = zeros(n);
 
-soft_thresh = @(b, rambda) sign(b).*max(abs(b) - 1/rambda,0);
+% Optimization with each column once
 for i = 1:n
-    bi = B(:,i);
-    Ri = R(:,i);
+    ei = I(:,i);
     xk = L; uk = L; 
-%     mu = 1; 
+%     yk = L; 
+    
+    % Start with iteration
     cond = true;
     while cond 
-        yk = min(max(Sigma*xk -bi + uk/mu, -lambda*L),lambda*L);
-%         tempb = Ri + R * (yk - uk/mu) + S/alpha * xk;
-        tempb = Ri + R * (yk - uk/mu) + A/alpha * xk;
-        xk1 = soft_thresh(tempb, mu*alpha);
-        uk = uk + mu * (Sigma*xk1 - bi - yk);
-        cond = norm( xk1 - xk) > err ;
-        %         cond = norm( xk1 - xk) > err && norm( yk1 - yk) > err && norm(uk1 - uk) > err;
-        xk = xk1;
+
+        yk = min(max(Sigma*xk -ei + uk/mu, (-lambda*L)),lambda*L);
+        v = R * (ei + yk - uk/mu);
+        b = v + S * xk;
+        xk1 = soft_threshS(b, 2/(mu*alpha^2));
+        uk1 = uk + mu * (Sigma*xk1 - ei - yk);
+        cond = norm( xk1 - xk) > err && norm(uk1 - uk) > err;
+%         cond = norm( xk1 - xk) > err;
+        xk = xk1; uk = uk1;
     end
     Theta_hat(:,i) = xk;
+
 end
 
+
+% Theta_hat(abs(Theta_hat) <= eta) = 0;
+% Theta_hat
