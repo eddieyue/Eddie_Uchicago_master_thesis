@@ -2,7 +2,7 @@ clear
 clc
 % Generate Elliptical Data
 % Generate precision matrix 
-Ndim = 10; Nsim = 100; 
+Ndim = 50; Nsim = 1000; 
 Theta = eye(Ndim);
 Theta = Theta + diag(0.2*ones(Ndim-1,1),1) + diag(0.2*ones(Ndim-1,1),-1);
 
@@ -14,13 +14,22 @@ DataEC = GenerateEC(Nsim,Ndim,Nu, Mu, Theta);
 
 % Estimate variance-covariance matrix by correlation matrix
 Sigma = corr(DataEC, DataEC);
+tic;lambdamin = ADMM_minlambda(Sigma, 1e-4);toc;
+lambdaMin = lambdamin*1.01; 
+L =60; lambdaMax =1;
+lambda = lambdaMin +(lambdaMax - lambdaMin)/(L-1)*((L-1):-1:0);
+% lambda = lambdaMin * (1.30:-0.01:1.00);
 
 % Initial Setting for ADMM
-lambda = 0.05; 
-err = 1e-4;
-Theta_hat = ADMM(Sigma, lambda, err);
+err = 1e-6;
+tic;Theta = ADMM(Sigma, lambda, err);toc;
+Theta_hat = Truncate_Theta(Theta, 1e-4);
 
-
+for i = 1:L 
+    lambda(i)
+    figure()
+    imagesc(Theta_hat2(:,:,i));
+end
 
 % mu = 1; n = size(Sigma,1); err = 1; I = eye(n);L = diag(I);
 % soft_threshS = @(b,lambda) sign(b).*max(abs(b) - lambda/2,0);

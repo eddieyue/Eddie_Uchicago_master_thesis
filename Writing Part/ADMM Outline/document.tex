@@ -18,9 +18,9 @@
 
 \begin{document} 
 	\paragraph{ADMM Part}: \\
-	To estimate the $\hat{\theta}$, the precision matrix, with $\Sigma$, the correlatoin matrix by CLIME method, here is the optimization problem:
+	To estimate the $\hat{\Theta}$, the precision matrix, with $\Sigma$, the correlatoin matrix by CLIME method, here is the optimization problem:
 	\[
-	\hat{\theta} = \arg\!\min_\theta \|\theta\|_1
+	\hat{\Theta} = \arg\!\min_\Theta \|\Theta\|_1
 	\quad s.t \quad \|\Sigma\Theta - \mathds{1}_p\|_\infty \leq \lambda
 	\tag{1}\label{myeq1}
 	\] 
@@ -30,6 +30,7 @@
 	\quad s.t \quad \|\Sigma{x} - e_i\|_\infty \leq \lambda
 	\tag{2}\label{myeq2} \]
 	where $x_i$ is the $i^{th}$ colunm of $\theta$ and the $e_i$ is the $i^{th}$ column of $\mathds{1}_p $.\\
+	
 	At first place, we attempt to solve this problem \eqref{myeq2} in MATLAB using a convex optimization package like CVX, which employ accurate but slow methos. Fortunately, however, there is a much more efficient way to do this, here is the Alternating Direction Method of Multipliers (ADMM):
 	\[
 	\hat{\beta} = \arg\!\min_\beta \|\beta\|_1
@@ -43,7 +44,7 @@
 	\tag{4}\label{myeq4}
 	\]
 	for some $\mu > 0$. \\
-	
+
 	Each iteration of the ADMM involves alternate minimization of $L_\mu$ with respect to z and $\beta$, followed by an update of $\lambda$. Here is the outline for ADMM:\\
 	
 	Start with $\beta^0 , \lambda^0 \in \mathbb{R}^p$ and $ \mu > 0$.Then iterate with z and $\beta$ followed by an update of $\lambda$ until converge( Actually, I do have the question of the convergence condition). For k = 0,1,...
@@ -59,14 +60,13 @@
 	
 	For the augmented Lagrangian function \eqref{myeq4}, it is easy to observe that the first subproblem in \eqref{myeq5} has a close-form solution.
 	\begin{align*}
-	z^{k+1} &= \arg\!\min_z \|z - (X^TX\beta^{k}-X^Ty-\frac{\lambda^k}{\mu})\|_{2}^2 \quad s.t \quad \|D^{-1}z\|_\infty \leq \delta\\
-	z^{k+1}_i &= min\{max\{(X^TX\beta^{k}-X^Ty-\frac{\lambda^k}{\mu})_i,-\delta{d}_i\}, \delta{d}_i)\}
+	z^{k+1} &= \arg\!\min_z \|z - (X^TX\beta^{k}-X^Ty+\frac{\lambda^k}{\mu})\|_{2}^2 \quad s.t \quad \|D^{-1}z\|_\infty \leq \delta\\
+	z^{k+1}_i &= min\{max\{(X^TX\beta^{k}-X^Ty+\frac{\lambda^k}{\mu})_i,-\delta{d}_i\}, \delta{d}_i)\}
 	\tag{6}\label{myeq6}
 	\end{align*}
 	where $d_i$ is the $i^{th}$ diagonal entry of D.
 	
 	The second subproblem in \eqref{myeq5} is harder to solve, it can be rewritten as, 
-	
 	\[
 	\beta^{k+1} = \arg\!\min_\beta \frac{\mu}{2}\|X^TX\beta^{k}-X^Ty-z^{k+1}+\frac{\lambda^k}{\mu}\|_{2}^2 + \|\beta\|_1
 	\tag{7}\label{myeq7}

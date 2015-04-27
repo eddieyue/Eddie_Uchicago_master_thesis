@@ -1,0 +1,12 @@
+Eddie Yue master thesis outline
+
+1. Introduction of Transellipticla Graphical Models
+
+2. ClIME, ADMM, Garphical LAsso
+
+3. Compare with Power of Kendall's Tau, Sample corr and nonparanormal model with generated elliptical data 
+
+4. Experiment with Gene Expression Data 
+
+5. conclusion
+
